@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/MatheusmPigatto/ABFWebScrapper#readme",
   "dependencies": {
-    "puppeteer": "^13.4.1"
+    "puppeteer": "^13.4.1",
+    "puppeteer-cluster": "^0.23.0"
   }
 }

@@ -1,17 +1,16 @@
-Instrucoes para uso do scrapper:
-comandos iniciais
+Setup
 
     npm install
     npm install --save xlsx
     npm install --save puppeteer  
     npm install --save puppeteer-cluster
 
-comandos para rodar o scrapper:
+Run:
     
     node cluster.js
     node cleaner.js
     node ./exportExcel/index.js 
 
-A partir de agr arquivo excel esta na pasta fileOutput
+File is in fileOutput
 
 para atualizar as informacoes apenas repetir os passos a cima

@@ -1,28 +1,60 @@
 const { Cluster } = require('puppeteer-cluster');
-const pup = require('puppeteer');
 const fs = require('fs');
 
 let franchisesUrls = [];
 
 (async () => {
+   let segmentUrls = [];
    await (async () => {
-        const browser = await pup.launch();
-        const page =  await browser.newPage();
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_CONTEXT,
+            maxConcurrency: 2,
+            monitor: true,
+        });
+
+        cluster.on('taskerror', (err, data) => {
+            console.log(`Error crawling ${data}: ${err.message}`);
+        });
+
+        await cluster.task(async ({ page, data: url }) => {
+            await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+            const urlList = await page.$$eval('.franchise-filter-mobile-fields option', e => e.map((op) => op.value.length > 20 ? op.value : null)
+            .filter(val => val !== null));
+            segmentUrls = [...segmentUrls, ...urlList]
+          });
+
+        await cluster.queue('https://franquias.portaldofranchising.com.br/')
+
+        await cluster.idle();
+        await cluster.close();
+    })();
+
+   await (async () => {
+        const cluster = await Cluster.launch({
+            concurrency: Cluster.CONCURRENCY_CONTEXT,
+            maxConcurrency: 16,
+            monitor: true,
+        });
     
-        await page.goto('https://franquias.portaldofranchising.com.br/')
-        const urlList = await page.$$eval('.franchise-filter-mobile-fields option', e => e
-        .map((op) => op.value.length > 20 ? op.value : null)
-        .filter(val => val !== null));
+        cluster.on('taskerror', (err, data) => {
+            console.log(`Error crawling ${data}: ${err.message}`);
+        });
     
-        for(const url of urlList) {
-            await page.goto(url);
+        await cluster.task(async ({ page, data: url }) => {
+            await page.goto(url, { waitUntil: 'domcontentloaded' });
     
             const pageUrls = await page.$$eval('.card-franchise a', el => el.map(link => link.href));
     
             franchisesUrls = [...franchisesUrls, ...pageUrls]
-            console.log(franchisesUrls.length)
+          });
+    
+          for(url of segmentUrls) {
+            await cluster.queue(url)
         }
-        await browser.close();
+        
+          await cluster.idle();
+          await cluster.close();
     })();
 
   const cluster = await Cluster.launch({
@@ -65,7 +97,6 @@ let franchisesUrls = [];
         franchise.phone = info[0]
         franchise.segment = info[1]
         franchise.primarySeg = info[2]
-        franchise.type = info[3]   
     }
 
     const  franchise = {}
@@ -76,10 +107,8 @@ let franchisesUrls = [];
 
     franchiseList = [...franchiseList, franchise]
 
-    fs.writeFile('franchises.json', JSON.stringify(franchiseList, null, 2), err => {
+    fs.writeFile('ruthFranchise.json', JSON.stringify(franchiseList, null, 2), err => {
         if(err) throw new Error('somethin went wrong')
-
-        console.log('Done!')
     })
   });
 

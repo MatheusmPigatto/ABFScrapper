@@ -1,5 +1,6 @@
 Instrucoes para uso do scrapper:
 comandos iniciais
+
     npm install
     npm install --save xlsx
     npm install --save puppeteer  
